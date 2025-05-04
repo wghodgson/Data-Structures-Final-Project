@@ -1,160 +1,179 @@
+/* Program name: Forty Thieves
+* Author: Walter Hodgson
+* Date last updated: 5/3/2025
+* Purpose: Final Project for Data Structures
+*/
+
 #include "game.h"
 #include <iostream>
 #include <limits>
-using namespace std;
 
 // Function prototypes
-void displayMenu();
-int getMenuChoice();
+void displayMenu(); // Displays the main menu
+int getMenuChoice(); // Gets choice from the user
 
 int main()
 {
-    Game game;
-    bool running = true;
+    Game game; // Main Game object
+    bool running = true; // Game loop control flag
 
-    cout << "\n====================================\n";
-    cout << "      Welcome to Forty Thieves!     \n";
-    cout << "====================================\n\n";
+    std::cout << "\n====================================\n";
+    std::cout << "      Welcome to Forty Thieves!     \n";
+    std::cout << "====================================\n\n";
 
-    while (running)
+    while (running) // Main game loop
     {
         displayMenu();
-        int choice = getMenuChoice();
+        int choice = getMenuChoice(); 
 
-        switch (choice)
+        switch (choice) // Switch will drive the menu
         {
-        case 1:
+        case 1: // Starts a game
             game.startGame();
-            cout << "\nNew game started!\n";
+            std::cout << "\nNew game started!\n";
             game.displayBoard();
             break;
-        case 2:
+        case 2: // Draws a card from the deck
             game.drawCard();
             game.displayBoard();
             if (game.checkWinCondition())
             {
-                cout << "\n🎉 Congratulations! You have completed Forty Thieves! 🎉\n";
+                std::cout << "\n🎉 Congratulations! You have completed Forty Thieves! 🎉\n";
                 running = false;
             }
             break;
-        case 3:
+        case 3: // Moves a card from one tableau to another one
         {
             int fromCol, toCol;
-            cout << "Enter move as 'from to' (e.g., 3 7): ";
-            cin >> fromCol >> toCol;
+            std::cout << "Enter move as 'from to' (e.g., 3 7): ";
+            std::cin >> fromCol >> toCol;
             if (fromCol >= 1 && fromCol <= 10 && toCol >= 1 && toCol <= 10)
             {
                 try
                 {
-                    game.moveTableauToTableau(fromCol - 1, toCol - 1);
+                    game.moveTableauToTableau(fromCol - 1, toCol - 1); // Adjusting indexing
                 }
-                catch (const exception& e)
+                catch (const std::exception& e)
                 {
-                    cout << "\nError: " << e.what() << "\n";
+                    std::cout << "\nError: " << e.what() << "\n";
                 }
             }
             else
             {
-                cout << "\nInvalid column numbers.\n";
+                std::cout << "\nInvalid column numbers.\n";
             }
             game.displayBoard();
             if (game.checkWinCondition())
             {
-                cout << "\n🎉 Congratulations! You have completed Forty Thieves! 🎉\n";
+                std::cout << "\n🎉 Congratulations! You have completed Forty Thieves! 🎉\n";
                 running = false;
             }
             break;
         }
-        case 4:
+        case 4: // Moves a card from the tableau to the foundation
         {
             int fromCol;
-            cout << "Enter source column (1-10) to move to foundations: ";
-            cin >> fromCol;
+            std::cout << "Enter source column (1-10) to move to foundations: ";
+            std::cin >> fromCol;
             if (fromCol >= 1 && fromCol <= 10)
             {
                 try
                 {
-                    game.moveTableauToFoundation(fromCol - 1);
+                    game.moveTableauToFoundation(fromCol - 1); // Adjust indexing again
                 }
-                catch (const exception& e)
+                catch (const std::exception& e)
                 {
-                    cout << "\nError: " << e.what() << "\n";
+                    std::cout << "\nError: " << e.what() << "\n";
                 }
             }
             else
             {
-                cout << "\nInvalid column number.\n";
+                std::cout << "\nInvalid column number.\n";
             }
             game.displayBoard();
             if (game.checkWinCondition())
             {
-                cout << "\n🎉 Congratulations! You have completed Forty Thieves! 🎉\n";
+                std::cout << "\n🎉 Congratulations! You have completed Forty Thieves! 🎉\n";
                 running = false;
             }
             break;
         }
-        case 5:
+        case 5: // Move a card from the waste pile to the tableau
         {
             int toCol;
-            cout << "Enter destination column (1-10) for the waste card: ";
-            cin >> toCol;
+            std::cout << "Enter destination column (1-10) for the waste card: ";
+            std::cin >> toCol;
             if (toCol >= 1 && toCol <= 10)
             {
                 try
                 {
                     game.moveWasteToTableau(toCol - 1);
                 }
-                catch (const exception& e)
+                catch (const std::exception& e)
                 {
-                    cout << "\nError: " << e.what() << "\n";
+                    std::cout << "\nError: " << e.what() << "\n";
                 }
             }
             else
             {
-                cout << "\nInvalid column number.\n";
+                std::cout << "\nInvalid column number.\n";
             }
             game.displayBoard();
             if (game.checkWinCondition())
             {
-                cout << "\n🎉 Congratulations! You have completed Forty Thieves! 🎉\n";
+                std::cout << "\n🎉 Congratulations! You have completed Forty Thieves! 🎉\n";
                 running = false;
             }
             break;
         }
-        case 6:
+        case 6: // Move a card from the waste pile to the foundation
             try
             {
                 game.moveWasteToFoundation();
             }
-            catch (const exception& e)
+            catch (const std::exception& e)
             {
-                cout << "\nError: " << e.what() << "\n";
+                std::cout << "\nError: " << e.what() << "\n";
             }
             game.displayBoard();
             if (game.checkWinCondition())
             {
-                cout << "\n🎉 Congratulations! You have completed Forty Thieves! 🎉\n";
+                std::cout << "\n🎉 Congratulations! You have completed Forty Thieves! 🎉\n";
                 running = false;
             }
             break;
-        case 7:
+        case 7: { // Move a card from the tableau to the temporary column - used to move whole columns
+            int from;
+            std::cout << "Enter source column (1-10) to move card to temp: ";
+            std::cin >> from;
+            game.moveTableauToTemp(from - 1); // 0-indexed
+            break;
+        }
+        case 8: { // Move a card from the temporary column back to the tableau
+            int to;
+            std::cout << "Enter destination column (1-10) to move card from temp: ";
+            std::cin >> to;
+            game.moveTempToTableau(to - 1); 
+            break;
+        }
+        case 9: // Display the current board
             game.displayBoard();
             break;
-        case 8:
-            game.restartGame();
-            cout << "\nGame restarted!\n";
+        case 10: // Display the current board
+            game.restartGame(); 
+            std::cout << "\nGame restarted!\n";
             game.displayBoard();
             break;
-        case 9:
+        case 11: // Exit the game
             running = false;
-            cout << "\nThanks for playing Forty Thieves!\n";
+            std::cout << "\nThanks for playing Forty Thieves!\n";
             break;
-        default:
-            cout << "\nInvalid choice.\n";
+        default: // Handling invalid choices
+            std::cout << "\nInvalid choice.\n";
             break;
         }
 
-        cout << "\n\n";
+        std::cout << "\n\n";
     }
 
     return 0;
@@ -163,28 +182,30 @@ int main()
 // Display the main menu
 void displayMenu()
 {
-    cout << "\n==== Forty Thieves Solitaire ====" << endl;
-    cout << "1. Start New Game" << endl;
-    cout << "2. Draw Card" << endl;
-    cout << "3. Move Tableau to Tableau" << endl;
-    cout << "4. Move Tableau to Foundation" << endl;
-    cout << "5. Move Waste to Tableau" << endl;
-    cout << "6. Move Waste to Foundation" << endl;
-    cout << "7. View Current Board" << endl;
-    cout << "8. Restart Game" << endl;
-    cout << "9. Exit" << endl;
-    cout << "Choose an option: ";
+    std::cout << "\n==== Forty Thieves Solitaire ====" << std::endl;
+    std::cout << "1. Start New Game" << std::endl;
+    std::cout << "2. Draw Card" << std::endl;
+    std::cout << "3. Move Tableau to Tableau" << std::endl;
+    std::cout << "4. Move Tableau to Foundation" << std::endl;
+    std::cout << "5. Move Waste to Tableau" << std::endl;
+    std::cout << "6. Move Waste to Foundation" << std::endl;
+    std::cout << "7. Move Tableau to Temp Column" << std::endl; 
+    std::cout << "8. Move Temp Column to Tableau" << std::endl;        
+    std::cout << "9. View Current Board" << std::endl;
+    std::cout << "10. Restart Game" << std::endl;
+    std::cout << "11. Exit" << std::endl;
+    std::cout << "Choose an option: ";
 }
 
 // Safely get the menu choice from user
 int getMenuChoice()
 {
     int choice;
-    while (!(cin >> choice))
+    while (!(std::cin >> choice))
     {
-        cout << "Invalid input. Please enter a number: ";
-        cin.clear();
-        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        std::cout << "Invalid input. Please enter a number: ";
+        std::cin.clear();
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     }
     return choice;
 }

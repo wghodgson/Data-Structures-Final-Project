@@ -14,6 +14,7 @@ private:
     linkedQueue<Card*> wastePile; // Waste pile (drawn cards)
     linkedStack<Card*> foundations[8]; // Eight foundation piles
     linkedStack<Card*> tableau[10]; // Ten tableau columns
+    linkedStack<Card*> tempColumn; // Temp column will be used to move columns
 
 public:
     // Constructor and Destructor
@@ -39,12 +40,18 @@ public:
     void moveWasteToTableau(int toCol);
     void moveWasteToFoundation();
 
-    // Display the full game board using ASCII art
+    // Temp for moving columns 
+    void moveTableauToTemp(int fromCol);
+    void moveTempToTableau(int toCol);
+
+    // Display the full game board 
     void displayBoard() const;
 
     // Helper methods
     bool isMoveValid(Card* movingCard, Card* destinationCard) const;
     int findFoundationIndex(const std::string& suit) const;
+    Card* getLastWasteCard() const;
+    void removeLastWasteCard();
 
     // Win detection
     bool checkWinCondition() const;

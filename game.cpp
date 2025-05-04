@@ -1,17 +1,46 @@
 #include "game.h"
 #include <iomanip>
 
-// Constructor
+// Constructor initializes a new deck that has been shuffled
 Game::Game()
 {
     deck = new Deck();
-    startGame();
 }
 
-// Destructor
+// Destructor to clean up the dynamically allocated deck
 Game::~Game()
 {
     delete deck;
+}
+
+//Helper returns the most recently added card in waste
+Card* Game::getLastWasteCard() const {
+    return wastePile.isEmptyQueue() ? nullptr : wastePile.back();
+}
+
+// Helper to remove the most recently added card in waste pile
+void Game::removeLastWasteCard()
+{
+    if (wastePile.isEmptyQueue()) return;
+
+    linkedQueue<Card*> tempQueue;
+
+    // Move all but last to temp
+    while (wastePile.length() > 1)
+    {
+        tempQueue.enqueue(wastePile.front());
+        wastePile.dequeue(); 
+    }
+
+    // Discard the last card
+    wastePile.dequeue();
+
+    // Restore all the cards except the last one that was just removed
+    while (!tempQueue.isEmptyQueue())
+    {
+        wastePile.enqueue(tempQueue.front());
+        tempQueue.dequeue();
+    }
 }
 
 // Start a new game
@@ -50,7 +79,7 @@ void Game::restartGame()
             tableau[i].pop();
         }
     }
-    for (int i = 0; i < 8; ++i)
+    for (int i = 0; i < 8; ++i) // Clear the foundation piles
     {
         while (!foundations[i].isEmptyStack())
         {
@@ -64,7 +93,7 @@ void Game::restartGame()
         wastePile.dequeue();
     }
 
-    startGame();
+    startGame(); // Deal a fresh game
 }
 
 // Draw a card from the deck to the waste pile
@@ -82,7 +111,7 @@ void Game::drawCard()
     }
 }
 
-// Move a card from tableau to another tableau column
+// Move a card from tableau to another tableau column as long as it is a valid move
 void Game::moveTableauToTableau(int fromCol, int toCol)
 {
     if (tableau[fromCol].isEmptyStack())
@@ -93,6 +122,12 @@ void Game::moveTableauToTableau(int fromCol, int toCol)
 
     Card* movingCard = tableau[fromCol].top();
 
+    if (!movingCard->isFaceUp())
+    {
+        std::cout << "\nCannot move a face-down card.\n";
+        return;
+    }
+    // If the column is empty then allow the move
     if (tableau[toCol].isEmptyStack())
     {
         tableau[toCol].push(movingCard);
@@ -109,10 +144,11 @@ void Game::moveTableauToTableau(int fromCol, int toCol)
         else
         {
             std::cout << "\nInvalid move.\n";
+            return;
         }
     }
 
-    // If card revealed on source column, flip it to face up
+    // Flip card face up if the card is now exposed
     if (!tableau[fromCol].isEmptyStack())
     {
         Card* newTop = tableau[fromCol].top();
@@ -126,33 +162,54 @@ void Game::moveTableauToTableau(int fromCol, int toCol)
 // Move a card from tableau to foundations
 void Game::moveTableauToFoundation(int fromCol)
 {
-    if (tableau[fromCol].isEmptyStack())
+    if (tableau[fromCol].isEmptyStack()) // Prevent move from an empty column
     {
         std::cout << "\nCannot move from an empty column.\n";
         return;
     }
 
     Card* movingCard = tableau[fromCol].top();
-    int foundationIndex = findFoundationIndex(movingCard->getSuit());
-
-    if (foundationIndex != -1)
+    bool moved = false;
+    // Try placing the card on one of the foundation piles
+    for (int i = 0; i < 8; ++i)
     {
-        if (foundations[foundationIndex].isEmptyStack() && movingCard->getRank() == 1)
+        if (foundations[i].isEmptyStack())
         {
-            foundations[foundationIndex].push(movingCard);
-            tableau[fromCol].pop();
-        }
-        else if (!foundations[foundationIndex].isEmptyStack())
-        {
-            Card* topFoundation = foundations[foundationIndex].top();
-            if (topFoundation->getRank() + 1 == movingCard->getRank())
+            if (movingCard->getRank() == 1) // Only allow the ace to start the foundation
             {
-                foundations[foundationIndex].push(movingCard);
+                foundations[i].push(movingCard);
                 tableau[fromCol].pop();
+                moved = true;
+                break;
             }
-            else
+        }
+        else
+        {
+            Card* topCard = foundations[i].top();
+            if (topCard->getSuit() == movingCard->getSuit() && // Check if card is same suit and adds one to rank
+                topCard->getRank() + 1 == movingCard->getRank())
             {
-                std::cout << "\nInvalid move to foundation.\n";
+                foundations[i].push(movingCard);
+                tableau[fromCol].pop();
+                moved = true;
+                break;
+            }
+        }
+    }
+
+    if (!moved)
+    {
+        std::cout << "\nInvalid move to foundation.\n";
+    }
+    else
+    {
+        // Flip next card in tableau column if needed
+        if (!tableau[fromCol].isEmptyStack())
+        {
+            Card* newTop = tableau[fromCol].top();
+            if (!newTop->isFaceUp())
+            {
+                newTop->flipCard();
             }
         }
     }
@@ -163,16 +220,22 @@ void Game::moveWasteToTableau(int toCol)
 {
     if (wastePile.isEmptyQueue())
     {
-        std::cout << "\nNo cards in waste pile.\n";
+        std::cout << "\nWaste pile is empty.\n";
         return;
     }
 
-    Card* movingCard = wastePile.front();
+    Card* movingCard = getLastWasteCard(); // Get the most recent draw (back of queue)
 
-    if (tableau[toCol].isEmptyStack())
+    if (!movingCard->isFaceUp())
+    {
+        std::cout << "\nCannot move a face-down card from waste.\n";
+        return;
+    }
+
+    if (tableau[toCol].isEmptyStack()) // Allows any card on an empty tableau column
     {
         tableau[toCol].push(movingCard);
-        wastePile.dequeue();
+        removeLastWasteCard(); // Removes from back
     }
     else
     {
@@ -180,7 +243,7 @@ void Game::moveWasteToTableau(int toCol)
         if (isMoveValid(movingCard, destinationCard))
         {
             tableau[toCol].push(movingCard);
-            wastePile.dequeue();
+            removeLastWasteCard();
         }
         else
         {
@@ -189,7 +252,7 @@ void Game::moveWasteToTableau(int toCol)
     }
 }
 
-// Move a card from waste pile to foundations
+// Move a card from waste pile to foundations if valid
 void Game::moveWasteToFoundation()
 {
     if (wastePile.isEmptyQueue())
@@ -198,114 +261,179 @@ void Game::moveWasteToFoundation()
         return;
     }
 
-    Card* movingCard = wastePile.front();
-    int foundationIndex = findFoundationIndex(movingCard->getSuit());
-
-    if (foundationIndex != -1)
-    {
-        if (foundations[foundationIndex].isEmptyStack() && movingCard->getRank() == 1)
-        {
-            foundations[foundationIndex].push(movingCard);
-            wastePile.dequeue();
-        }
-        else if (!foundations[foundationIndex].isEmptyStack())
-        {
-            Card* topFoundation = foundations[foundationIndex].top();
-            if (topFoundation->getRank() + 1 == movingCard->getRank())
-            {
-                foundations[foundationIndex].push(movingCard);
-                wastePile.dequeue();
-            }
-            else
-            {
-                std::cout << "\nInvalid move to foundation.\n";
-            }
-        }
-    }
-}
-
-// Display the full game board
-/* V1 no ASCII art
-void Game::displayBoard() const
-{
-    std::cout << "\nFoundations:\n";
+    Card* movingCard = getLastWasteCard(); // Using helper to get the correct card
+    bool moved = false;
+    // Attempting to place a card into a foundation slot
     for (int i = 0; i < 8; ++i)
     {
-        if (!foundations[i].isEmptyStack())
+        if (foundations[i].isEmptyStack())
         {
-            foundations[i].top()->displayCard(std::cout);
+            if (movingCard->getRank() == 1) // Ace
+            {
+                foundations[i].push(movingCard);
+                removeLastWasteCard();
+                moved = true;
+                break;
+            }
         }
         else
         {
-            std::cout << "[  ]";
+            Card* topCard = foundations[i].top();
+            if (topCard->getSuit() == movingCard->getSuit() &&
+                topCard->getRank() + 1 == movingCard->getRank())
+            {
+                foundations[i].push(movingCard);
+                removeLastWasteCard();
+                moved = true;
+                break;
+            }
         }
+    }
+
+    if (!moved)
+    {
+        std::cout << "\nInvalid move to foundation.\n";
+    }
+}
+// Move one card from the tableau to a temporary column for gameplay
+void Game::moveTableauToTemp(int fromCol)
+{
+    if (fromCol < 0 || fromCol >= 10) // Validate column index
+    {
+        std::cout << "\nInvalid column number.\n";
+        return;
+    }
+
+    if (tableau[fromCol].isEmptyStack())
+    {
+        std::cout << "\nCannot move from an empty column.\n";
+        return;
+    }
+
+    Card* topCard = tableau[fromCol].top();
+    // Only allow the face up cards to move
+    if (!topCard->isFaceUp())
+    {
+        std::cout << "\nCannot move a face-down card.\n";
+        return;
+    }
+
+    // Move the card to the temp column
+    tempColumn.push(topCard);
+    tableau[fromCol].pop();
+
+    std::cout << "\nMoved ";
+    topCard->displayCard(std::cout);
+    std::cout << " to temporary column.\n";
+
+    // Flip the next card if needed
+    if (!tableau[fromCol].isEmptyStack())
+    {
+        Card* newTop = tableau[fromCol].top();
+        if (!newTop->isFaceUp())
+        {
+            newTop->flipCard();
+        }
+    }
+
+    // Display board
+    displayBoard();
+}
+// Moving a card from the temporary column back to the tableau
+void Game::moveTempToTableau(int toCol)
+{
+    if (toCol < 0 || toCol >= 10)
+    {
+        std::cout << "\nInvalid destination column.\n";
+        return;
+    }
+
+    if (tempColumn.isEmptyStack())
+    {
+        std::cout << "\nTemporary column is empty.\n";
+        return;
+    }
+
+    Card* movingCard = tempColumn.top();
+
+    if (tableau[toCol].isEmptyStack())
+    {
+        tableau[toCol].push(movingCard);
+        tempColumn.pop();
+        std::cout << "\nMoved ";
+        movingCard->displayCard(std::cout);
+        std::cout << " to Column " << (toCol + 1) << ".\n";
+        return;
+    }
+
+    Card* destinationCard = tableau[toCol].top();
+
+    if (isMoveValid(movingCard, destinationCard))
+    {
+        tableau[toCol].push(movingCard);
+        tempColumn.pop();
+        std::cout << "\nMoved ";
+        movingCard->displayCard(std::cout);
+        std::cout << " to Column " << (toCol + 1) << ".\n";
+    }
+    else
+    {
+        std::cout << "\nInvalid move from temp column to Column " << (toCol + 1) << ".\n";
+    }
+
+    // Display board
+    displayBoard();
+}
+
+// Print the current game board - foundation, waste, draw, temp and tableau
+void Game::displayBoard() const
+{   
+    std::cout << "\nFoundations:\n"; // Foundations
+    for (int i = 0; i < 8; ++i)
+    {
+        if (!foundations[i].isEmptyStack())
+            foundations[i].top()->displayCard(std::cout);
+        else
+            std::cout << "[  ]";
+        std::cout << " ";
+    }
+    
+    std::cout << "\n\nWaste Pile: "; // Waste and draw piles
+    Card* lastWasteCard = getLastWasteCard();
+    if (lastWasteCard != nullptr)
+        lastWasteCard->displayCard(std::cout);
+    else
+        std::cout << "[  ]";
+    
+    std::cout << "    Draw Pile: ";
+    if (!deck->isEmpty())
+        std::cout << "[ ## ]";
+    else
+        std::cout << "[  ]";
+
+    std::cout << "    Temp Column: "; // Temp column
+    linkedStack<Card*> tempCopy = tempColumn;
+    linkedStack<Card*> displayStack;
+        
+    // Reverse for left-to-right display
+    while (!tempCopy.isEmptyStack())
+        displayStack.push(tempCopy.pop());
+        
+    while (!displayStack.isEmptyStack())
+    {
+        Card* card = displayStack.pop();
+        card->displayCard(std::cout);
         std::cout << " ";
     }
 
-    std::cout << "\n\nWaste Pile: ";
-    if (!wastePile.isEmptyQueue())
-    {
-        wastePile.front()->displayCard(std::cout);
-    }
-    else
-    {
-        std::cout << "[  ]";
-    }
-
-    std::cout << "    Draw Pile: ";
-    if (!deck->isEmpty())
-    {
-        std::cout << "[ ## ]";
-    }
-    else
-    {
-        std::cout << "[  ]";
-    }
-
-    std::cout << "\n\nTableau:\n";
-    for (int i = 0; i < 10; ++i)
-    {
-        std::cout << "Col " << i + 1 << "\t";
-    }
-    std::cout << "\n";
-}
-*/
-
-// Version 2 trying ASCII art
-void Game::displayBoard() const
-{
-    using namespace std;
-    
-    cout << "\nFoundations:\n";
-    for (int i = 0; i < 8; ++i)
-    {
-        if (!foundations[i].isEmptyStack())
-            foundations[i].top()->displayCard(cout);
-        else
-            cout << "[  ]";
-        cout << " ";
-    }
-    
-    cout << "\n\nWaste Pile: ";
-    if (!wastePile.isEmptyQueue())
-        wastePile.front()->displayCard(cout);
-    else
-        cout << "[  ]";
-    
-    cout << "    Draw Pile: ";
-    if (!deck->isEmpty())
-        cout << "[ ## ]";
-    else
-        cout << "[  ]";
-
-    cout << "\n\nTableau Columns:\n";
+    std::cout << "\n\nTableau Columns:\n"; // Tableau
     
     // Print column headers
     for (int i = 0; i < 10; ++i)
     {
-        cout << "Col " << i+1 << "\t";
+        std::cout << "Col " << i+1 << "\t";
     }
-    cout << "\n";
+    std::cout << "\n";
 
     // Find the maximum column height
     int maxHeight = 0;
@@ -355,21 +483,21 @@ void Game::displayBoard() const
                 }
                 if (!tempStack.isEmptyStack())
                 {
-                    tempStack.top()->displayCard(cout);
+                    tempStack.top()->displayCard(std::cout);
                 }
                 else
                 {
-                    cout << "[  ]";
+                    std::cout << "[  ]";
                 }
             }
             else
             {
-                cout << "     "; // Empty space if no card
+                std::cout << "     "; // Empty space if no card
             }
             
-            cout << "\t";
+            std::cout << "\t";
         }
-        cout << "\n";
+        std::cout << "\n";
     }
 }
 
@@ -381,8 +509,25 @@ bool Game::isMoveValid(Card* movingCard, Card* destinationCard) const
         return false;
     }
 
-    return (movingCard->getSuit() == destinationCard->getSuit()) &&
-           (movingCard->getRank() + 1 == destinationCard->getRank());
+    if (!movingCard->isFaceUp() || !destinationCard->isFaceUp())
+    {
+        return false;
+    }
+
+    int movingRank = movingCard->getRank();
+    int destinationRank = destinationCard->getRank();
+
+    bool oppositeColor = movingCard->isRed() != destinationCard->isRed();
+
+    // Using for debug turns out I actually like keeping the output though :)
+    std::cout << "Comparing: " << movingCard->getRank() << " " << movingCard->getSuit()
+              << " (" << movingCard->getColor() << ") to "
+              << destinationCard->getRank() << " " << destinationCard->getSuit()
+              << " (" << destinationCard->getColor() << ") --> "
+              << (movingRank == destinationRank - 1 ? "✓ Rank" : "✗ Rank") << ", "
+              << (oppositeColor ? "✓ Color" : "✗ Color") << "\n";
+
+    return (movingRank == destinationRank - 1) && oppositeColor;
 }
 
 // Find foundation index based on suit
@@ -400,7 +545,7 @@ int Game::findFoundationIndex(const std::string& suit) const
         return -1;
 }
 
-// Checking for win state
+// Checking for win state all foundations will be topped with the King
 bool Game::checkWinCondition() const
 {
     for (int i = 0; i < 8; ++i)
@@ -410,3 +555,4 @@ bool Game::checkWinCondition() const
     }
     return true;
 }
+

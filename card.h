@@ -24,6 +24,7 @@ public:
     std::string getSuit() const;
     std::string getColor() const;
     bool isFaceUp() const;
+    bool isRed() const;
 
     // Mutator methods
     void flipCard(); // Flips card faceUp or faceDown

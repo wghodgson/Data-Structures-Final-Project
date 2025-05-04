@@ -14,10 +14,12 @@ public:
     t back() const;
     void enqueue(const t &queueElement);
     t dequeue();
+    void dequeueBack(); // Added to remove most recently added
     linkedQueue();
     linkedQueue(const linkedQueue<t> &);
     const linkedQueue<t> &operator=(const linkedQueue<t> &);
     ~linkedQueue();
+    int length() const; // Needed for helper function removeLastWasteCard
 
 protected:
     node<t> *queueFront;
@@ -104,6 +106,30 @@ t linkedQueue<t>::dequeue()
     delete temp;
     return returnItem;
 }
+// Added this so that I can lift a card from the back of the queue
+template <class t>
+void linkedQueue<t>::dequeueBack()
+{
+    if (isEmptyQueue()) return;
+
+    if (queueFront == queueRear)
+    {
+        delete queueFront;
+        queueFront = queueRear = nullptr;
+    }
+    else
+    {
+        node<t>* current = queueFront;
+        while (current->next != queueRear)
+        {
+            current = current->next;
+        }
+
+        delete queueRear;
+        queueRear = current;
+        queueRear->next = nullptr;
+    }
+}
 
 template <class t>
 linkedQueue<t>::linkedQueue()
@@ -147,6 +173,17 @@ template <class t>
 linkedQueue<t>::~linkedQueue()
 {
     initializeQueue();
+}
+
+template <class T>
+int linkedQueue<T>::length() const {
+    int count = 0;
+    node<T>* current = this->queueFront;
+    while (current != nullptr) {
+        ++count;
+        current = current->next;
+    }
+    return count;
 }
 
 #endif

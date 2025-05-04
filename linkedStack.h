@@ -83,17 +83,17 @@ void linkedStack<t>::copyStack(const linkedStack<t> &othStack)
         current = othStack.stackTop;
         this->stackTop = new node<t>;
         this->stackTop->data = new t(*(current->data));
-        this->stackTop->link = nullptr;
+        this->stackTop->next = nullptr; // Node uses next not link
         last = this->stackTop;
-        current = current->link;
+        current = current->next; // Node uses next not link
         while (current != nullptr)
         {
             newNode = new node<t>;
             newNode->data = new t(*(current->data));
-            newNode->link = nullptr;
-            last->link = newNode;
+            newNode->next = nullptr; // Node uses next not link
+            last->next = newNode; // Node uses next not link
             last = newNode;
-            current = current->link;
+            current = current->next; // Node uses next not link
         }
         this->count = othStack.count;
     }
@@ -106,7 +106,7 @@ void linkedStack<t>::initializeStack()
     while (stackTop != nullptr)
     {
         temp = stackTop;
-        stackTop = stackTop->link;
+        stackTop = stackTop->next; // Node uses next not link
         delete temp;
     }
     count = 0;
@@ -124,7 +124,7 @@ void linkedStack<t>::push(const t &newItem)
     node<t> *newNode;
     newNode = new node<t>;
     newNode->data = new t(newItem);
-    newNode->link = stackTop;
+    newNode->next = stackTop; // Node uses next not link
     stackTop = newNode;
     count++;
 }
@@ -139,7 +139,7 @@ t linkedStack<t>::pop()
     }
     t copyT(*(stackTop->data));
     temp = stackTop;
-    stackTop = stackTop->link;
+    stackTop = stackTop->next; // Node uses next not link
     delete temp;
     count--;
     return copyT;
